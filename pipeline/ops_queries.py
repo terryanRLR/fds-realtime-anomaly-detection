@@ -54,6 +54,11 @@ try:
 except ImportError:                                  # pragma: no cover
     import review_store as rs
 
+try:
+    from pipeline import demo_mode as _demo
+except ImportError:                                  # pragma: no cover
+    import demo_mode as _demo
+
 # 컬럼별 선언 시간대. "auto" 는 한 컬럼에 섞여 있다고 알려진 경우.
 TZ_DECLARED = {
     ("watcher_status", "started_at"): "utc",
@@ -383,6 +388,14 @@ def alert_queue(db_path: str | Path = DEFAULT_DB, limit: int = 50,
         return []
 
     items = [dict(zip(keys, r)) for r in rows]
+
+    # 🎬 시연 모드(환경변수 FDS_DEMO_MODE=1)에서만 동작한다.
+    #   여기가 알림 행이 나오는 **유일한 깔때기**다(live_feed 도 이 함수를 부른다).
+    #   그래서 시각 재기준을 이 한 자리에서 하면 트리아지·SLA·교대 요약·실시간
+    #   피드가 전부 같은 기준을 본다. 아래 `시각` 파생보다 먼저 와야 한다.
+    #   꺼져 있으면(기본) 아무 일도 하지 않는다.
+    items = _demo.rebase(items, "ts_utc")
+
     done = rs.reviewed_ids(db_path) if only_unreviewed else set()
     verdicts = {} if only_unreviewed else rs.current(
         db_path, [i["txn_id"] for i in items])

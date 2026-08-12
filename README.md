@@ -12,8 +12,8 @@
 | **데이터** | [DACON 금융 AI 챌린지](https://dacon.io/competitions/official/236297/data) · 120,000행 × 64컬럼 · 13클래스 |
 | **모델** | LightGBM 13-class · 58피처 · **Macro-F1 0.6138** |
 | **운영 임계값** | `th_review` **0.005** — 기대비용 **4.62억** (Macro-F1 ≥ 0.60 제약 하 최소) |
-| **시스템** | Python **36,477줄** · Streamlit 앱 2개 + 워처 · `pipeline/` 40모듈 · 자가검증 12종 |
-| **다국어** | KO / EN / JA / ZH — 657키 × 4 |
+| **시스템** | Python **37,534줄** · Streamlit 앱 2개 + 워처 · `pipeline/` **55모듈** · 자가검증 12종 |
+| **다국어** | KO / EN / JA / ZH — **772키** × 4 |
 
 ---
 
@@ -38,7 +38,7 @@
 **개별 수정으로는 재발을 못 막았습니다.** 같은 버그가 3번 재발한 뒤 방식이 바뀝니다 —
 불변식을 테스트로 고정하고, 정적 검사로 차단하고, 구현을 한 벌로 합치고, **폴백을 금지**했습니다.
 
-> 전체 **72건**의 증상 · 재현조건 · 원인 · 해결: [`docs/03_issues_and_troubleshooting.md`](docs/03_issues_and_troubleshooting.md)
+> 전체 **73건**의 증상 · 재현조건 · 원인 · 해결: [`docs/03_issues_and_troubleshooting.md`](docs/03_issues_and_troubleshooting.md)
 
 ---
 
@@ -130,10 +130,10 @@
 ├── docs/                            ★ 프로젝트 문서
 │   ├── 01_project_plan.md              기획서 + 계획-실행 대조
 │   ├── 02_analysis_pipeline.md         원본 CSV → 운영 임계값 전 구간
-│   ├── 03_issues_and_troubleshooting.md  ★★ 이슈 마스터 인덱스 (72건)
+│   ├── 03_issues_and_troubleshooting.md  ★★ 이슈 마스터 인덱스 (73건)
 │   │   ├── 03a_issues_data_modeling.md     데이터·모델링 (18)
 │   │   ├── 03b_issues_dashboard_pipeline.md 대시보드·파이프라인 (24)
-│   │   └── 03c_issues_ops_runtime.md        관제·런타임 (30)
+│   │   └── 03c_issues_ops_runtime.md        관제·런타임 (31)
 │   ├── 04_tutor_feedback.md            튜터·멘토 피드백 → 대응 추적
 │   ├── 05_system_architecture.md       2앱 + 워처 구조와 설계 결정
 │   ├── 06_dashboard_features.md      ★ 기능 카탈로그 (기능→코드→함정)
@@ -152,7 +152,7 @@
 ├── dashboard.py                      ★ QA 대시보드 (:8501 · 5,843줄)
 ├── ops_dashboard.py                  ★ 관제 콘솔 (:8502 · 3,554줄)
 ├── watcher.py                          무인 워처 (5초 폴링 · 689줄)
-├── pipeline/                         ★ 공용 로직 40모듈 (~21,000줄)
+├── pipeline/                         ★ 공용 로직 55모듈 (23,161줄)
 ├── tools/                              운영 스크립트 6종
 │
 ├── knowledge/                          RAG 지식베이스 (LLM 이 인용 — 문서 아님)
@@ -211,7 +211,7 @@ python -m pipeline.selftest_all --fast   # 자가검증 (~6초)
 | 작업 | 내용 |
 |---|---|
 | **노트북 분리** | 셀 **1개짜리 30KB** 통합 노트북(`RUN_PART1~4` 플래그로 5파트) → 5개로. 109셀 전처리 노트북 → 5개로. **원본 실행 출력 138건 전부 보존** |
-| **이슈 역추적** | `PATCH_NOTES5.md`(191KB · v10~v39) · `FIX_REPORT.md`(v5.0~v6.5) · `OPS_BACKLOG.md` · 코드 주석 · 노트북 출력을 교차 대조해 **72건**을 형식 통일 |
+| **이슈 역추적** | `PATCH_NOTES5.md`(191KB · v10~v39) · `FIX_REPORT.md`(v5.0~v6.5) · `OPS_BACKLOG.md` · 코드 주석 · 노트북 출력을 교차 대조해 **73건**을 형식 통일 |
 | **빈 구간 복원** | 1·2차 전처리 · Baseline 비교 · ISF 코드가 없던 구간을 **실제로 재실행**해 노트북 2개로 복원. 사라진 9피처 공식 역산 |
 | **분석↔시스템 연결** | 노트북의 수치와 운영 코드의 판단을 상호 링크 (예: 임계값 0.005 → `watcher_config.json` → 관제 콘솔 시뮬레이터) |
 | **산출물 분류** | PDF 22개를 담당·주제별로 `reports/`(19) · `slides/`(3) 로 |

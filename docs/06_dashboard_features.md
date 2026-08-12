@@ -623,7 +623,7 @@ astore.attach(svc)     # DetectService 생성 직후
 
 **어디** — [`i18n_data.py`](../i18n_data.py) (1,705줄) · `pipeline/ops_ui.py` `_OPS` 표
 
-**규모** — 657키 × 4개 언어. `t()` 344키 + `tt()` 47키 + ops 571키.
+**규모** — **772키 × 4개 언어** (`i18n_data.TR`, `I18N_VERSION = v9.3`). 네 언어가 모두 같은 키 집합을 갖는다(누락 0).
 
 **전략 — `i18n_data.py` 를 수정하지 않는다**
 

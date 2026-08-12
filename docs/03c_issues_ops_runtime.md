@@ -1018,3 +1018,59 @@ README 최상단에 🔴 경고로 명시돼 있다.
 **근거** — [`pipeline/ARCHITECTURE.md`](../pipeline/ARCHITECTURE.md) §8 버그 #5 · [`PATCH_NOTES5.md`](../PATCH_NOTES5.md) v20 §6-8
 
 **상태** `⚠️ ops 만 폴백 보유 · dashboard 미전환`
+
+---
+
+<a id="c-31"></a>
+## C-31. 🟠 문서에 적힌 자가검증 명령이 한국어 Windows 에서 첫 줄에 죽었다
+
+**증상**
+README·인수인계 문서가 안내하는 명령을 그대로 실행하면 즉시 죽는다.
+
+```
+> python -m pipeline.selftest_all --fast
+UnicodeEncodeError: 'cp949' codec can't encode character '—' in position 75
+```
+
+테스트가 실패한 것이 아니라 **러너가 진행 상황을 출력하다가** 죽는다.
+`python -m pipeline.selftest_preprocessor` 처럼 개별 실행도 같다.
+
+**재현 조건**
+한국어 Windows 기본 콘솔(코드페이지 949). `PYTHONUTF8=1` 을 주면 재현되지 않는다 —
+그래서 환경변수를 습관적으로 붙이는 사람에게는 보이지 않았다.
+
+**원인**
+자가검증 출력이 `━ ═ ─ ✅ ❌ ★ —` 를 쓴다. cp949 로 인코딩할 수 없는 문자들이다.
+러너를 통해 돌릴 때 **자식 프로세스는 안전했다** — `selftest_all.main()` 이
+`env` 에 `PYTHONIOENCODING=utf-8` 을 넣어 넘기기 때문이다.
+죽던 것은 **러너 자신의 `print`**, 그리고 개별 모듈을 직접 실행한 경우였다.
+
+즉 "자식은 보호했지만 부모는 보호하지 않았다."
+
+**해결**
+두 지점을 나눠서 고쳤다.
+
+| 대상 | 조치 |
+|---|---|
+| 러너 자신 | `selftest_all.py` 상단에서 `sys.stdout/stderr` 를 UTF-8 로 고정 |
+| 개별 모듈 12종 | `pipeline/__init__.py` 에서 한 번만 보정 — `python -m pipeline.<무엇이든>` 이 항상 거치는 지점 |
+
+모듈마다 같은 4줄을 복사하지 않았다. 그리고 **이미 출력 가능한 인코딩이면
+아무것도 하지 않는다** — UTF-8 콘솔·CI 에서는 no-op 이다.
+`errors="replace"` 는 쓰지 않았다. 글자가 깨진 채 통과하면 로그를 믿을 수 없게 되므로,
+UTF-8 로 바꿀 수 있을 때만 바꾸고 아니면 원래대로 둔다.
+
+**검증**
+환경변수를 **모두 제거하고**(`env -u PYTHONUTF8 -u PYTHONIOENCODING`)
+
+- 개별 실행 11종 전부 exit 0 (`agent`·`shift`·`dispatch`·`detect_io`·`status_push`·
+  `alert`·`ops`·`analysis`·`recheck`·`migrate`·`preprocessor`)
+- 러너 경로 `10/10 통과 · 총 7.1초`
+
+**교훈**
+"우리 환경에서는 되는데" 가 곧 재현 조건이다. 환경변수를 주는 습관이
+버그를 가려 왔고, 그래서 **문서에 적힌 명령이 실제로 도는지** 아무도 확인하지 않았다.
+
+**근거** — [`pipeline/__init__.py`](../pipeline/__init__.py) · [`pipeline/selftest_all.py`](../pipeline/selftest_all.py)
+
+**상태** `✅ 해결`

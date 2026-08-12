@@ -177,9 +177,9 @@ n8n·MCP 는 세 번째, 네 번째 어댑터일 뿐입니다. 복붙 구조였�
 | QA 대시보드 `dashboard.py` | 5,843줄 · 5세션 |
 | 관제 콘솔 `ops_dashboard.py` | 3,554줄 · 8탭 |
 | 무인 워처 `watcher.py` | 689줄 · 5초 폴링 · 데드맨 스위치 |
-| 공용 파이프라인 `pipeline/` | 40모듈 · 약 21,000줄 |
+| 공용 파이프라인 `pipeline/` | **55모듈 · 23,161줄** |
 | 자가 검증 | `selftest_*.py` **12종** |
-| 다국어 | KO / EN / JA / ZH · 657키 × 4 |
+| 다국어 | KO / EN / JA / ZH · **772키 × 4** (`i18n_data.TR`, v9.3) |
 | 패치 이력 | **v10 → v39** ([`PATCH_NOTES5.md`](../PATCH_NOTES5.md) 191KB) |
 
 이 확장분의 구조는 [`05_system_architecture.md`](05_system_architecture.md),

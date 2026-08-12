@@ -112,12 +112,14 @@ try:
     from pipeline import ops_ui as ui
     from pipeline import review_store as rs
     from pipeline import ops_queries as oq
+    from pipeline import demo_mode as _demo
     from pipeline import watcher_panel as wp
     from pipeline import watcher_config as wcfg
 except ImportError:                                    # pragma: no cover
     import ops_ui as ui
     import review_store as rs
     import ops_queries as oq
+    import demo_mode as _demo
     try:
         import watcher_panel as wp
     except ImportError:
@@ -467,6 +469,16 @@ def _header_badges() -> list:
 
 
 st.markdown(ui.hero(t, badges=_header_badges()), unsafe_allow_html=True)
+
+# ── 🎬 시연 모드 안내 ──────────────────────────────────────
+#   FDS_DEMO_MODE=1 이면 알림 시각이 현재로 재기준된다(pipeline/demo_mode.py).
+#   재기준된 시각을 실제 운영 시각으로 오인하면 안 되므로, **끄기 전까지 항상**
+#   화면 맨 위에 보이게 둔다. 배지 렌더가 실패해도 앱은 계속 돌아야 한다.
+try:
+    if _demo.enabled():
+        st.info(_demo.badge_text(LANG))
+except Exception as e:                                 # pragma: no cover
+    log.debug(f"시연 모드 배지 생략: {e}")
 
 # ── 🎓 첫 실행 안내 ────────────────────────────────────────
 #   DB 확인(st.stop)보다 **먼저** 띄운다. 처음 여는 사람은 DB 경로부터
