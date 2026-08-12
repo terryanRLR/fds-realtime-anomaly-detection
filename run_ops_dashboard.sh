@@ -13,4 +13,8 @@ if lsof -i :"$PORT" -sTCP:LISTEN >/dev/null 2>&1; then
 fi
 
 echo "🚀 ops_dashboard.py → http://localhost:$PORT"
-streamlit run ops_dashboard.py --server.port "$PORT"
+# 127.0.0.1 고정 — 관제 화면은 판정·발송 권한을 그대로 노출한다.
+# LAN 공유가 필요하면 BIND_ADDR=0.0.0.0 을 주고 실행할 것.
+BIND_ADDR="${BIND_ADDR:-127.0.0.1}"
+export PYTHONUTF8=1 PYTHONIOENCODING=utf-8
+streamlit run ops_dashboard.py --server.address "$BIND_ADDR" --server.port "$PORT"

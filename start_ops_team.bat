@@ -118,7 +118,7 @@ if defined CONDA_ACT (
     >>"%HELP_ST%" echo call conda activate %CONDA_ENV%
 )
 >>"%HELP_ST%" echo cd /d "%DASHBOARD_DIR%"
->>"%HELP_ST%" echo streamlit run ops_dashboard.py --server.address 0.0.0.0 --server.port %OPS_PORT% --browser.gatherUsageStats false
+>>"%HELP_ST%" echo streamlit run ops_dashboard.py --server.address %BIND_ADDR% --server.port %OPS_PORT% --browser.gatherUsageStats false
 >>"%HELP_ST%" echo echo.
 >>"%HELP_ST%" echo echo [Streamlit ended - check messages above for errors]
 >>"%HELP_ST%" echo pause

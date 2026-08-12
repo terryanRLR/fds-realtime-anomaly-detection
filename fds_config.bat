@@ -27,6 +27,14 @@ set DASHBOARD_PORT=8501
 set OPS_PORT=8502
 set ST_WAIT_TRIES=30
 
+:: ---------- 바인딩 주소 (보안) ----------
+:: 127.0.0.1 = 이 PC에서만 접속 가능. ngrok 은 127.0.0.1 로 붙으므로
+::             외부 공유(ngrok)에는 이 값으로 충분하다.
+:: 0.0.0.0   = 같은 LAN 의 누구나 http://내IP:포트 로 접속 가능.
+:: ★ 대시보드에는 인증이 없다(docs/03c #C-29). LAN 공유가 정말 필요한
+::   순간에만 0.0.0.0 으로 바꾸고, 끝나면 되돌릴 것.
+set BIND_ADDR=127.0.0.1
+
 :: ---------- 워처 ----------
 set "WATCHER_ARGS=--inbox inbox --interval 5 --startup-ping"
 

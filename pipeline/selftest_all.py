@@ -20,6 +20,19 @@ from pathlib import Path
 
 ROOT = Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# 🔧 FIX(인코딩): 한국어 Windows 기본 콘솔은 cp949 라서, 아래 출력에 쓰는 em dash(—)와
+#   박스 문자(━ ═)가 UnicodeEncodeError 를 던지며 러너가 **첫 줄에서 즉사**했다.
+#   README·인수인계 문서가 안내하는 `python -m pipeline.selftest_all --fast` 가
+#   그대로는 돌지 않았다는 뜻이다. 매번 PYTHONUTF8=1 을 붙이게 하는 대신 여기서 고정한다.
+#   ※ 자식 테스트들은 원래부터 안전했다 — main() 의 env 가 PYTHONIOENCODING 을
+#     물려주고 subprocess 도 encoding="utf-8" 로 읽는다. 죽던 것은 **러너 자신의
+#     print** 였다.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):      # 파이프로 리다이렉트된 경우 등
+        pass
+
 # (이름, 모듈, 느림?, 설명)
 SUITE = [
     ("agent",       "pipeline.selftest_agent",        False, "챗봇 액션 화이트리스트·파싱"),
@@ -48,7 +61,7 @@ def main() -> int:
         print(f"실행할 테스트가 없습니다. 이름: {[s[0] for s in SUITE]}")
         return 1
 
-    env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
+    env = {**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONUTF8": "1"}
     results, t_all = [], time.perf_counter()
     for name, mod, slow, desc in todo:
         print(f"\n{'━' * 62}\n▶ {name}  — {desc}{'  (느림)' if slow else ''}")

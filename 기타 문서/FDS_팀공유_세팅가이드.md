@@ -57,12 +57,21 @@
 ### Streamlit — 추가 권장 옵션
 
 ```
-현재:   streamlit run dashboard.py
-권장:   streamlit run dashboard.py --server.address 0.0.0.0 --server.port 8501
+현재:   streamlit run dashboard.py --server.address 127.0.0.1 --server.port 8501
+LAN 공유 시: streamlit run dashboard.py --server.address 0.0.0.0 --server.port 8501
 ```
 
+- `--server.address 127.0.0.1` : **현재 런처의 기본값.** 이 PC에서만 접속 가능
 - `--server.address 0.0.0.0` : 같은 LAN의 팀원이 ngrok 없이 직접 `http://오빠IP:8501`로도 접속 가능
 - `--server.port 8501` : 명시적 포트 고정 (기본값이긴 하지만 확실히)
+
+> ⚠️ **`0.0.0.0`은 기본값이 아니라 의식적으로 켜는 옵션입니다.**
+> Streamlit은 `--server.address`를 생략하면 알아서 모든 인터페이스에 붙습니다. 대시보드에는
+> 인증이 없어서, 옵션을 안 줬을 뿐인데 LAN 전체에 열려 있는 상태가 됩니다. 그래서 런처들이
+> `127.0.0.1`을 명시하도록 바꿨습니다.
+>
+> LAN 공유가 필요하면 `fds_config.bat`의 `set BIND_ADDR=0.0.0.0` 한 줄만 바꾸면 팀 런처
+> 전체에 반영됩니다. ngrok을 쓸 때는 바꾸지 않아도 됩니다 (ngrok이 `127.0.0.1`로 붙음).
 
 
 ## 2. 권장 실행 명령어 (수정 후)

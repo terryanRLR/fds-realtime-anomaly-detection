@@ -13,4 +13,6 @@ if %ERRORLEVEL%==0 (
 )
 
 echo dashboard.py -^> http://localhost:%PORT%
-streamlit run dashboard.py --server.port %PORT%
+set PYTHONUTF8=1
+set PYTHONIOENCODING=utf-8
+streamlit run dashboard.py --server.address 127.0.0.1 --server.port %PORT%

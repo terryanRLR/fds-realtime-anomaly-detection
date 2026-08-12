@@ -120,7 +120,7 @@ if defined CONDA_ACT (
     >>"%HELP_ST_DASH%" echo call conda activate %CONDA_ENV%
 )
 >>"%HELP_ST_DASH%" echo cd /d "%DASHBOARD_DIR%"
->>"%HELP_ST_DASH%" echo streamlit run dashboard.py --server.address 0.0.0.0 --server.port %DASHBOARD_PORT% --browser.gatherUsageStats false
+>>"%HELP_ST_DASH%" echo streamlit run dashboard.py --server.address %BIND_ADDR% --server.port %DASHBOARD_PORT% --browser.gatherUsageStats false
 >>"%HELP_ST_DASH%" echo echo.
 >>"%HELP_ST_DASH%" echo echo [Streamlit ended - check messages above for errors]
 >>"%HELP_ST_DASH%" echo pause
@@ -133,7 +133,7 @@ if defined CONDA_ACT (
     >>"%HELP_ST_OPS%" echo call conda activate %CONDA_ENV%
 )
 >>"%HELP_ST_OPS%" echo cd /d "%DASHBOARD_DIR%"
->>"%HELP_ST_OPS%" echo streamlit run ops_dashboard.py --server.address 0.0.0.0 --server.port %OPS_PORT% --browser.gatherUsageStats false
+>>"%HELP_ST_OPS%" echo streamlit run ops_dashboard.py --server.address %BIND_ADDR% --server.port %OPS_PORT% --browser.gatherUsageStats false
 >>"%HELP_ST_OPS%" echo echo.
 >>"%HELP_ST_OPS%" echo echo [Streamlit ended - check messages above for errors]
 >>"%HELP_ST_OPS%" echo pause

@@ -94,6 +94,22 @@ streamlit run dashboard.py --server.address 0.0.0.0 --server.port 8501
 
 기동 완료되면 `Network URL: http://192.168.0.4:8501`이 표시된다.
 
+> ⚠️ **런처의 기본값은 이제 `0.0.0.0`이 아니라 `127.0.0.1`입니다.**
+> 대시보드에는 인증이 없어서([`docs/03c` #C-29](docs/03c_issues_ops_runtime.md)) 기본값으로 LAN에
+> 열어두면 같은 네트워크의 누구나 조회·발송을 할 수 있습니다. 그래서 `run_dashboard.bat`·
+> `run_ops_dashboard.bat`은 `127.0.0.1`로 고정되어 있고, 팀 런처(`start_fds_all.bat` 등)는
+> `fds_config.bat`의 `BIND_ADDR` 값을 씁니다.
+>
+> **이 방법(LAN 공유)을 쓰려면** `fds_config.bat`에서 한 줄만 바꾸세요.
+>
+> ```bat
+> set BIND_ADDR=0.0.0.0
+> ```
+>
+> 공유가 끝나면 `127.0.0.1`로 되돌리는 것을 권합니다.
+> **ngrok 방식(방법 2)에는 이 변경이 필요하지 않습니다** — ngrok은 `127.0.0.1:포트`로 붙기 때문에
+> 루프백 바인딩만으로 충분합니다.
+
 **5단계: 팀원에게 접속 URL 전달**
 
 ```

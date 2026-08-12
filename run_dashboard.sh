@@ -13,4 +13,9 @@ if lsof -i :"$PORT" -sTCP:LISTEN >/dev/null 2>&1; then
 fi
 
 echo "🚀 dashboard.py → http://localhost:$PORT"
-streamlit run dashboard.py --server.port "$PORT"
+# 127.0.0.1 고정 — 대시보드에 인증이 없어(docs/03c #C-29) 기본값으로 LAN 에
+# 열어두면 같은 네트워크의 누구나 조회·발송이 가능하다.
+# LAN 공유가 필요하면 BIND_ADDR=0.0.0.0 을 주고 실행할 것.
+BIND_ADDR="${BIND_ADDR:-127.0.0.1}"
+export PYTHONUTF8=1 PYTHONIOENCODING=utf-8
+streamlit run dashboard.py --server.address "$BIND_ADDR" --server.port "$PORT"

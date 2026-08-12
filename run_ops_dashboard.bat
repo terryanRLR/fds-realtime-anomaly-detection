@@ -13,4 +13,6 @@ if %ERRORLEVEL%==0 (
 )
 
 echo ops_dashboard.py -^> http://localhost:%PORT%
-streamlit run ops_dashboard.py --server.port %PORT%
+set PYTHONUTF8=1
+set PYTHONIOENCODING=utf-8
+streamlit run ops_dashboard.py --server.address 127.0.0.1 --server.port %PORT%

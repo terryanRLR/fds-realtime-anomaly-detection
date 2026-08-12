@@ -32,6 +32,8 @@ set "CONDA_ENV=qaqc_st"
 
 set LLAMA_PORT=8080
 set STREAMLIT_PORT=8501
+:: 바인딩 주소 - 127.0.0.1=로컬만 / 0.0.0.0=LAN 공개(인증 없음, 주의)
+set BIND_ADDR=127.0.0.1
 
 :: How long to wait for services (seconds = tries x 2)
 set LLAMA_WAIT_TRIES=90
@@ -170,7 +172,7 @@ if defined CONDA_ACT (
     >>"%HELP_ST%" echo call conda activate %CONDA_ENV%
 )
 >>"%HELP_ST%" echo cd /d "%DASHBOARD_DIR%"
->>"%HELP_ST%" echo streamlit run dashboard.py --server.address 0.0.0.0 --server.port %STREAMLIT_PORT% --browser.gatherUsageStats false
+>>"%HELP_ST%" echo streamlit run dashboard.py --server.address %BIND_ADDR% --server.port %STREAMLIT_PORT% --browser.gatherUsageStats false
 >>"%HELP_ST%" echo echo.
 >>"%HELP_ST%" echo echo [Streamlit ended - check messages above for errors]
 >>"%HELP_ST%" echo pause
