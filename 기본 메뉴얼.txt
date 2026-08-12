@@ -1,0 +1,311 @@
+FDS 대시보드 — 실행 메모
+(상세는 README.md · 워처 운영은 README_WATCHER.md)
+
+═══════════════════════════════════════════════
+1. 손으로 하나씩 띄우기
+═══════════════════════════════════════════════
+
+conda activate qaqc_st
+cd /d %USERPROFILE%\바탕 화면\QAQC_streamlit
+
+streamlit run dashboard.py       --server.port 8501    # QA 대시보드
+streamlit run ops_dashboard.py   --server.port 8502    # 관제 콘솔
+
+  또는 포트가 박혀 있는 배치 파일:
+    run_dashboard.bat        (8501)
+    run_ops_dashboard.bat    (8502)
+
+  ※ 두 앱은 목적이 다르다. 합치지 말 것 (README.md §1).
+  ※ streamlit 1.58 미만이면 관제 콘솔이 탭에서 즉사한다.
+
+═══════════════════════════════════════════════
+2. 전체 스택 한 번에 (권장)
+═══════════════════════════════════════════════
+
+start_fds_all_ops.bat     ← ngrok 이 관제 콘솔(:8502)을 공개
+start_fds_all.bat         ← ngrok 이 QA 대시보드(:8501)를 공개
+
+  llama.cpp → 워처 → 두 앱 → ngrok 순으로 뜨고, 각 단계 health check 를 한다.
+  경로·포트는 fds_config.bat 에서 읽는다.
+  _run_*.cmd 는 실행 시점에 생성되는 산출물이라 지워도 된다.
+
+  ngrok 무료 플랜은 터널이 1개뿐 → 둘 중 하나만 외부 공개.
+  공개 대상은 스크립트 상단 TUNNEL_TARGET (ops | dashboard).
+  나머지 하나는 같은 LAN 에서 http://<내부IP>:<포트>
+
+  ※ ngrok http 127.0.0.1:8080 은 llama 서버용이다. 대시보드를 공개하려면
+    8501/8502 를 지정해야 한다 — 8080 은 LLM 이라 외부에 열 이유가 없다.
+
+  🔴 인증이 없다. ngrok URL 을 아는 사람은 누구나 거래내역 조회와
+     이메일/Slack 발송이 가능하다. 공개 전 ngrok http --basic-auth 를 붙일 것.
+
+═══════════════════════════════════════════════
+3. llama.cpp 서버 (LLM 로컬 구동)
+═══════════════════════════════════════════════
+
+cd C:\Users\terry\llama-cpp-turboquant
+
+.\llama-server.exe --model C:\Users\terry\llama-cpp-turboquant\models\gemma-4-26B-A4B-it-qat-UD-Q4_K_XL.gguf -fa on --cont-batching --no-kv-unified -ctk turbo3 -ctv turbo3 -to 1800 -fit on --swa-full --ctx-checkpoints 1 -np 1 --host 127.0.0.1 --port 8080 -c 98304 --temperature 0.7 --repeat-penalty 1.12 --top-p 0.9 --top-k 40 --jinja
+
+  (start_fds_all_ops.bat 이 이 명령을 _run_llama.cmd 로 자동 생성한다)
+  옵션별 의미와 벤치마크 기록은 이 파일 아래쪽 참조.
+
+═══════════════════════════════════════════════
+4. 설치 / 갱신
+═══════════════════════════════════════════════
+
+pip install -r requirements.txt              # 로컬 운영
+pip install -r requirements-cloud.txt        # Streamlit Cloud 배포용 경량
+
+cp .env.example .env                         # 비밀값은 여기 (커밋 금지)
+
+═══════════════════════════════════════════════
+5. 코드 건드린 뒤 — 자가 검증
+═══════════════════════════════════════════════
+
+python -m pipeline.selftest_all              # 12종 전체 (~80초)
+python -m pipeline.selftest_all --fast       # UI 빼고 (~6초)
+
+  ※ 개별 실행은 반드시 모듈 경로로: python -m pipeline.selftest_ops
+    (python selftest_ops.py 로는 import 가 깨진다)
+
+  ※ ui 스위트는 워처가 살아 있다고 가정한다. 워처를 꺼 두고 돌리면
+    "워처 응답 없음" 경보 때문에 [1] 에러 0 이 실패한다 — 코드 문제 아님.
+
+python -m tools.verify_bundle                # 모델 번들 × 데이터셋 호환 검증
+
+═══════════════════════════════════════════════
+6. 5분 스모크 테스트 (모델 교체 후)
+═══════════════════════════════════════════════
+
+1. models/ 교체 후 구 feature_bridge.pkl 삭제 → 대시보드 재시작
+   (구 변환 규칙이 남아 있으면 조용히 틀린 예측을 한다)
+2. 세션 2 → 실시간 재평가 → parquet:va 선택 → 평가 실행
+   에러 카드 없고 "누락 피처 대체" 캡션 안 뜨면 합격 (뜨면 피처명 불일치)
+3. 세션 5 탭3 → parquet:va → 사기 유형만 3건 추출 → 탐지 실행
+   빨간 is_fraud 경고가 안 떠야 정상 (뜨면 누수 컬럼을 안 뺀 것)
+4. 같은 3건으로 일괄 분석 → "정답 보유 n건 중 유형 일치" 캡션 확인
+5. 임계값 슬라이더 → 탐지 이력 재판정 미리보기 동작 확인
+6. 관제 콘솔 :8502 → 🩺 진단 탭 → 자가진단 통과 확인
+
+═══════════════════════════════════════════════
+7. 자주 쓰는 확인
+═══════════════════════════════════════════════
+
+  DB 경로가 맞는가 (화면이 통째로 비면 십중팔구 이것)
+    → FDS_DB_PATH 미설정 시 '실행 디렉터리' 기준이다
+
+  워처가 살아 있는가
+    → 관제 콘솔 🟢 실시간 감시 탭, 또는 watcher.log 꼬리
+
+  시간대 이관이 끝났는가 (구버전 DB)
+    python migrate_timestamps.py fds_results.db            # 드라이런
+    python migrate_timestamps.py fds_results.db --apply    # 적용
+
+  프롬프트 커스텀 연결 여부
+    → prompts/analysis_prompt.py 는 '선택' 이다. 없으면 내장 폴백을 쓰고,
+      로그에 "프롬프트 모듈 사용 불가 → 기본 프롬프트 사용" 이 뜨는 게 정상.
+      화면에서 고치려면 대시보드의 프롬프트 편집기를 쓸 것.
+
+
+====
+
+최적화 2
+
+.\llama-server.exe --model C:\Users\terry\llama-cpp-turboquant\models\gemma-4-12B-it-qat-UD-Q4_K_XL.gguf -fa on -ctk turbo3 -ctv turbo3 --spec-type draft-mtp,ngram-mod --model-draft "C:\Users\terry\llama-cpp-turboquant\models\gemma-4-12B-it-qat-assistant-MTP-Q8_0.gguf" --spec-draft-n-max 3 --spec-draft-p-min 0.75 --spec-ngram-mod-n-match 16 --spec-ngram-mod-n-min 24 --spec-ngram-mod-n-max 48 -ngl 99 --n-gpu-layers-draft 99 -to 1800 -fit on -np 1 -b 2048 -ub 512 -c 49152
+
+-> 50.95 tokens per second
+
+
+최적화 3 테스트
+
+.\llama-server.exe --model C:\Users\terry\llama-cpp-turboquant\models\gemma-4-26B-A4B-it-qat-UD-Q4_K_XL.gguf -fa on -ctk turbo3 -ctv turbo3 --spec-type draft-ngram-mod --spec-ngram-mod-n-min 24 --spec-ngram-mod-n-max 48 -ngl 99 --n-gpu-layers-draft 99 -to 1800 -fit on -np 1 -b 2048 -ub 512 -c 49152
+
+-> 
+
+----
+
+--spec-draft-n-max 2/4/6
+--spec-draft-p-min 0.4 - 0.85
+--spec-draft-n-max 2/3/4
+--spec-ngram-mod-n-match 8/16/24
+--spec-ngram-mod-n-min 16/24/48
+--spec-ngram-mod-n-max 24/48/64
+-c 32768/65536/98304
+-b 1024/2048/4096
+-ub 256/512/1024
+
+
+## 기본 가속 및 성능 옵션 (-fa, -ctk, -ctv)
+
+* -fa on: 플래시 어텐션(Flash Attention)을 활성화하여 메모리 사용량을 줄이고 속도를 높입니다. (꺼지면 메모리를 많이 쓰고 속도가 느려짐)
+* -ctk turbo3: 콘텍스트 키(Key) 캐시의 데이터 타입을 설정하며 turbo3는 정밀도를 낮춰 VRAM을 아끼는 모드입니다. (값이 낮아지면 VRAM이 절약되나 품질이 떨어질 수 있음)
+* -ctv turbo3: 콘텍스트 밸류(Value) 캐시의 데이터 타입을 설정하며 키 캐시와 마찬가지로 VRAM을 절약합니다. (값이 낮아지면 VRAM이 절약되나 품질이 떨어질 수 있음)
+
+
+## 리소스 할당 옵션 (-ngl, -timeout, -fit, -np)
+
+* -np 1: 추론을 처리할 병렬 프로세스(인스턴스)의 개수입니다. (값이 커지면 여러 명이 동시에 쓸 수 있지만 단일 사용 시에는 VRAM과 자원만 낭비됨)
+
+* -ngl 99: 메인 모델의 레이어 중 GPU(VRAM)로 올릴 개수이며 99는 사실상 전체를 다 올리겠다는 의미입니다. (값이 작아지면 CPU와 시스템 RAM을 쓰게 되어 속도가 급격히 느려짐)
+
+* -timeout 1800: 추론 요청 후 응답이 없을 때 대기하는 최대 시간(초)입니다. (값이 작아지면 긴 문장 생성 중 응답이 끊길 수 있고, 크면 멈추었을 때 리소스를 오래 붙잡고 있음)
+
+* -fit on: 모델을 사용 가능한 VRAM 크기에 강제로 맞춰서 최적화하여 로드합니다. (꺼지면 VRAM 부족 시 실행 자체가 안 되거나 시스템이 멈출 수 있음)
+
+* -c 49152: 모델이 기억하고 처리할 수 있는 최대 문맥(Context) 길이입니다. (값이 커지면 아주 긴 대화나 문서를 기억하지만 VRAM 사용량이 기하급수적으로 늘어남)
+
+## 투기적 디코딩 (추측 생성) 옵션
+
+* --spec-type draft-mtp,ngram-mod: 다음 토큰을 미리 예측할 방식으로 보조 모델(MTP)과 엔그램(N-gram) 방식을 섞어 씁니다. (조합이 달라지면 예측 성공률과 연산 효율이 변함)
+
+* --model-draft "경로": 메인 모델보다 가벼운 보조 모델을 지정하여 메인 모델이 검증할 후보 토큰들을 빠르게 먼저 생성합니다. (보조 모델이 똑똑할수록 속도가 빨라지나 보조 모델 자체의 VRAM 소모가 커짐)
+
+* --spec-draft-n-max 4: 보조 모델이 한 번에 예측할 최대 토큰 수입니다. (값이 커지면 예측 성공 시 속도가 비약적으로 빨라지나, 틀리면 연산 낭비가 심해짐)
+
+* --spec-draft-p-min 0.55: 보조 모델의 예측 신뢰도(확률) 최소 기준입니다. (값이 커지면 확실한 토큰만 채택하여 성공률이 올라가지만, 너무 높으면 미리 예측하는 토큰 수가 줄어듬)
+
+* --n-gpu-layers-draft 99: 보조(Draft) 모델의 레이어 중 GPU로 올릴 개수입니다. (값이 작아지면 보조 모델 연산이 CPU에서 돌아서 투기적 디코딩의 이점이 사라짐)
+
+* --spec-ngram-mod-n-match 16: 엔그램 기반 예측 시 과거 텍스트 패턴과 일치해야 하는 최소 매칭 길이입니다. (값이 커지면 더 정확한 패턴을 찾지만, 너무 크면 매칭 성공률이 떨어짐)
+
+* --spec-ngram-mod-n-min 24: 엔그램 예측을 시도할 최소 토큰 탐색 범위입니다. (값이 커지면 더 넓은 문맥을 보지만 연산량이 늘어남)
+
+* --spec-ngram-mod-n-max 48: 엔그램 예측을 시도할 최대 토큰 탐색 범위입니다. (값이 커지면 먼 과거의 패턴까지 참조하지만 메모리와 연산 부담이 커짐)
+
+## 📐 버퍼 및 콘텍스트 크기 옵션 (-b, -ub, -c)
+
+* -b 2048: 한 번에 처리할 프롬프트의 배치(Batch) 크기입니다. (값이 커지면 초기 프롬프트 처리 속도가 빨라지나 순간적인 VRAM 소모가 급증함)
+* -ub 512: 물리적인 하위 물리 배치(Physical Batch) 크기입니다. (값이 커지면 하드웨어 효율이 좋아지나 시스템 안정성과 VRAM 부담이 커짐)
+
+
+------------------------------
+## 제안하신 튜닝 값 범위(추천 조합) 분석
+질문 뒷부분에 적어주신 값들(2/4/6, 32768/65536/98304 등)은 상황에 따른 조절 범위를 의미합니다. 현재 보유하신 VRAM 12GB 사양에서는 메인 모델(26B Q4)과 보조 모델(12B Q8)을 동시에 올리기 때문에 VRAM이 매우 부족할 가능성이 높습니다. 속도와 안정성을 잡기 위한 최적의 조합을 제안합니다.
+
+* 콘텍스트 크기 (-c): 98304나 65536은 VRAM 부족(OOM)으로 튕길 것입니다. 32768을 전후로 설정하시는 것을 강력히 권장합니다.
+* 추측 생성 토큰 수 (--spec-draft-n-max): 보조 모델 성능이 좋으므로 4 또는 6이 속도 향상에 유리합니다.
+* 신뢰도 (--spec-draft-p-min): 보조 모델이 12B로 영리한 편이므로 0.4~0.5 정도로 낮추어 더 많은 토큰을 과감하게 예측하게 만드는 것이 속도 면에서 좋습니다.
+* 배치 크기 (-b / -ub): VRAM 절약을 위해 -b 1048 -ub 256 수준으로 낮춰서 시작해 보고, 여유가 있다면 -b 2048 -ub 512로 올리시는 것이 안전합니다.
+
+
+
+1. 노말
+.\llama-server.exe --model C:\Users\terry\llama-cpp-turboquant\models\gemma-4-12B-it-qat-UD-Q4_K_XL.gguf -fa on -ctk turbo3 -ctv turbo3 -to 1800 -fit on -np 1 -c 49152
+-> 벤치: 34.40 t/s
+
+2. -ngl 99
+.\llama-server.exe --model C:\Users\terry\llama-cpp-turboquant\models\gemma-4-12B-it-qat-UD-Q4_K_XL.gguf -fa on -ctk turbo3 -ctv turbo3 -to 1800 -fit on -np 1 -ngl 99 -c 49152
+-> 벤치: 34.54 t/s
+
+3. -t 6 (일단 빼)
+.\llama-server.exe --model C:\Users\terry\llama-cpp-turboquant\models\gemma-4-12B-it-qat-UD-Q4_K_XL.gguf -fa on -ctk turbo3 -ctv turbo3 -to 1800 -fit on -np 1 -t 6 -ngl 99 -c 49152
+-> 벤치: 33.86 t/s
+
+4. 버퍼
+.\llama-server.exe --model C:\Users\terry\llama-cpp-turboquant\models\gemma-4-12B-it-qat-UD-Q4_K_XL.gguf -fa on -ctk turbo3 -ctv turbo3 -to 1800 -fit on -np 1 -t 6 -ngl 99 -b 2048 -ub 512 -c 49152
+-> 벤치: 34.48 t/s
+
+4. ngram만
+.\llama-server.exe --model C:\Users\terry\llama-cpp-turboquant\models\gemma-4-12B-it-qat-UD-Q4_K_XL.gguf -fa on -ctk turbo3 -ctv turbo3 -to 1800 -fit on -np 1 -t 6 -ngl 99 --spec-type ngram-mod --spec-ngram-mod-n-match 16 --spec-ngram-mod-n-min 24 --spec-ngram-mod-n-max 48 -b 2048 -ub 512 -c 49152
+-> 벤치: 34.59 t/s
+
+5. 버퍼만 수정
+.\llama-server.exe --model C:\Users\terry\llama-cpp-turboquant\models\gemma-4-12B-it-qat-UD-Q4_K_XL.gguf -fa on -ctk turbo3 -ctv turbo3 -to 1800 -fit on -np 1 -t 6 -ngl 99 --spec-type ngram-mod --spec-ngram-mod-n-match 16 --spec-ngram-mod-n-min 24 --spec-ngram-mod-n-max 48 -b 1024 -ub 256 -c 49152
+-> 벤치: 40.22 t/s
+
+6. MTP만 
+.\llama-server.exe --model C:\Users\terry\llama-cpp-turboquant\models\gemma-4-12B-it-qat-UD-Q4_K_XL.gguf -fa on -ctk turbo3 -ctv turbo3 --spec-type draft-mtp --model-draft "C:\Users\terry\llama-cpp-turboquant\models\gemma-4-12B-it-qat-assistant-MTP-Q8_0.gguf" --spec-draft-n-max 4 --spec-draft-p-min 0.55 -ngl 99 --n-gpu-layers-draft 99 -to 1800 -fit on -np 1 -b 2048 -ub 512 -c 49152
+-> 벤치: 48.52 t/s
+
+7. MTP만 수정
+.\llama-server.exe --model C:\Users\terry\llama-cpp-turboquant\models\gemma-4-12B-it-qat-UD-Q4_K_XL.gguf -fa on -ctk turbo3 -ctv turbo3 --spec-type draft-mtp --model-draft "C:\Users\terry\llama-cpp-turboquant\models\gemma-4-12B-it-qat-assistant-MTP-Q8_0.gguf" --spec-draft-n-max 2 -to 1800 -fit on -np 1 -c 98304
+-> 벤치: 50.78 t/s
+
+8. MTP만 수정2 -> --spec-draft-n-max 값을 늘리면 왜인지 모르지만 더 느려짐
+.\llama-server.exe --model C:\Users\terry\llama-cpp-turboquant\models\gemma-4-12B-it-qat-UD-Q4_K_XL.gguf -fa on -ctk turbo3 -ctv turbo3 --spec-type draft-mtp --model-draft "C:\Users\terry\llama-cpp-turboquant\models\gemma-4-12B-it-qat-assistant-MTP-Q8_0.gguf" --spec-draft-n-max 4 -to 1800 -fit on -np 1 -c 98304
+-> 벤치: 스킵 t/s
+
+9. 전체
+.\llama-server.exe --model C:\Users\terry\llama-cpp-turboquant\models\gemma-4-12B-it-qat-UD-Q4_K_XL.gguf -fa on -ctk turbo3 -ctv turbo3 --spec-type draft-mtp,ngram-mod --model-draft "C:\Users\terry\llama-cpp-turboquant\models\gemma-4-12B-it-qat-assistant-MTP-Q8_0.gguf" --spec-draft-n-max 4 --spec-draft-p-min 0.55 --spec-ngram-mod-n-match 16 --spec-ngram-mod-n-min 24 --spec-ngram-mod-n-max 48 -ngl 99 --n-gpu-layers-draft 99 -to 1800 -fit on -np 1 -b 2048 -ub 512 -c 49152
+-> 벤치: 49.20 t/s
+
+10. 전체 중 확실한 거 수정
+.\llama-server.exe --model C:\Users\terry\llama-cpp-turboquant\models\gemma-4-12B-it-qat-UD-Q4_K_XL.gguf -fa on -ctk turbo3 -ctv turbo3 --spec-type draft-mtp,ngram-mod --model-draft "C:\Users\terry\llama-cpp-turboquant\models\gemma-4-12B-it-qat-assistant-MTP-Q8_0.gguf" --spec-draft-n-max 2 --spec-draft-p-min 0.55 --spec-ngram-mod-n-match 16 --spec-ngram-mod-n-min 24 --spec-ngram-mod-n-max 48 -ngl 99 --n-gpu-layers-draft 99 -to 1800 -fit on -np 1 -b 1024 -ub 256 -c 49152
+-> 벤치: 49.17 t/s -> ...뭐임?
+
+11. 전체 중 하나만 수정
+.\llama-server.exe --model C:\Users\terry\llama-cpp-turboquant\models\gemma-4-12B-it-qat-UD-Q4_K_XL.gguf -fa on -ctk turbo3 -ctv turbo3 --spec-type draft-mtp,ngram-mod --model-draft "C:\Users\terry\llama-cpp-turboquant\models\gemma-4-12B-it-qat-assistant-MTP-Q8_0.gguf" --spec-draft-n-max 2 --spec-draft-p-min 0.55 --spec-ngram-mod-n-match 16 --spec-ngram-mod-n-min 24 --spec-ngram-mod-n-max 48 -ngl 99 --n-gpu-layers-draft 99 -to 1800 -fit on -np 1 -b 2048 -ub 512 -c 49152
+-> 벤치: 51.08 t/s -> 버퍼 조정 중요할 듯?
+
+12. ngram만 수정
+.\llama-server.exe --model C:\Users\terry\llama-cpp-turboquant\models\gemma-4-12B-it-qat-UD-Q4_K_XL.gguf -fa on -ctk turbo3 -ctv turbo3 --spec-type draft-mtp,ngram-mod --model-draft "C:\Users\terry\llama-cpp-turboquant\models\gemma-4-12B-it-qat-assistant-MTP-Q8_0.gguf" --spec-draft-n-max 2 --spec-draft-p-min 0.55 --spec-ngram-mod-n-match 8 --spec-ngram-mod-n-min 16 --spec-ngram-mod-n-max 24 -ngl 99 --n-gpu-layers-draft 99 -to 1800 -fit on -np 1 -b 2048 -ub 512 -c 49152
+-> 벤치: 52.01 t/s -> 빠른데?
+
+13. 전체 - 버버
+.\llama-server.exe --model C:\Users\terry\llama-cpp-turboquant\models\gemma-4-12B-it-qat-UD-Q4_K_XL.gguf -fa on -ctk turbo3 -ctv turbo3 --spec-type draft-mtp,ngram-mod --model-draft "C:\Users\terry\llama-cpp-turboquant\models\gemma-4-12B-it-qat-assistant-MTP-Q8_0.gguf" --spec-draft-n-max 2 --spec-draft-p-min 0.55 --spec-ngram-mod-n-match 16 --spec-ngram-mod-n-min 24 --spec-ngram-mod-n-max 48 -ngl 99 --n-gpu-layers-draft 99 -to 1800 -fit on -np 1 -c 49152
+-> 벤치: 49.21 t/s -> 버프
+
+14. 전체 - MTP만
+.\llama-server.exe --model C:\Users\terry\llama-cpp-turboquant\models\gemma-4-12B-it-qat-UD-Q4_K_XL.gguf -fa on -ctk turbo3 -ctv turbo3 --spec-type draft-mtp --model-draft "C:\Users\terry\llama-cpp-turboquant\models\gemma-4-12B-it-qat-assistant-MTP-Q8_0.gguf" --spec-draft-n-max 2 --spec-draft-p-min 0.55 -ngl 99 --n-gpu-layers-draft 99 -to 1800 -fit on -np 1 -b 2048 -ub 512 -c 49152
+-> 벤치: 50.21 t/s
+
+15. 일단 이걸로 픽스
+
+
+
+-> 벤치: 56.61 t/s
+
+번외1. 26 마일드
+.\llama-server.exe --model C:\Users\terry\llama-cpp-turboquant\models\gemma-4-26B-A4B-it-qat-UD-Q4_K_XL.gguf -fa on -ctk turbo3 -ctv turbo3 -to 1800 -fit on -np 1 -b 2048 -ub 512 -c 98304
+-> 벤치: 44.91 t/s
+
+번외2. 26 풀
+.\llama-server.exe --model C:\Users\terry\llama-cpp-turboquant\models\gemma-4-26B-A4B-it-qat-UD-Q4_K_XL.gguf -fa on -ctk turbo3 -ctv turbo3 --spec-type draft-mtp,ngram-mod --model-draft "C:\Users\terry\llama-cpp-turboquant\models\gemma-4-12B-it-qat-assistant-MTP-Q8_0.gguf" --spec-draft-n-max 2 --spec-draft-p-min 0.55 --spec-ngram-mod-n-match 8 --spec-ngram-mod-n-min 16 --spec-ngram-mod-n-max 24 --n-gpu-layers-draft 99 -to 1800 -fit on -np 1 -b 2048 -ub 512 -c 49152
+-> 벤치: 안되네.. t/s
+
+번외2. 26 조정
+.\llama-server.exe --model C:\Users\terry\llama-cpp-turboquant\models\gemma-4-26B-A4B-it-qat-UD-Q4_K_XL.gguf -fa on -ctk turbo3 -ctv turbo3 --spec-type ngram-mod --spec-ngram-mod-n-match 8 --spec-ngram-mod-n-min 16 --spec-ngram-mod-n-max 24 --n-gpu-layers-draft 99 -to 1800 -fit on -np 1 -b 2048 -ub 512 -c 98304
+-> 벤치: 45.26 t/s
+
+번외3. 26 조정 중
+.\llama-server.exe --model C:\Users\terry\llama-cpp-turboquant\models\gemma-4-26B-A4B-it-qat-UD-Q4_K_XL.gguf -fa on -ctk turbo3 -ctv turbo3 --spec-type draft-mtp --model-draft "C:\Users\terry\llama-cpp-turboquant\models\gemma-4-12B-it-qat-assistant-MTP-Q8_0.gguf" --spec-draft-n-max 2 --spec-draft-p-min 0.55 --n-gpu-layers-draft 99 -to 1800 -fit on -np 1 -c 65536
+-> 벤치: MTP가 무리인듯 t/s
+
+
+-----------------
+
+gemma-4 업데이트 기념 오리진 VS MTP 테스트
+
+26B
+.\llama-server.exe --model C:\Users\terry\llama-cpp-turboquant\models\gemma-4-26B-A4B-it-qat-UD-Q4_K_XL.gguf -fa on -ctk turbo3 -ctv turbo3 -to 1800 -fit on -np 1 -b 2048 -ub 512 -c 98304
+
+-> 44.20
+
+26B + MTP
+.\llama-server.exe --model C:\Users\terry\llama-cpp-turboquant\models\gemma-4-26B-A4B-it-qat-UD-Q4_K_XL.gguf -fa on -ctk turbo3 -ctv turbo3 --spec-type draft-mtp --model-draft "C:\Users\terry\llama-cpp-turboquant\models\mtp-gemma-4-26B-A4B-it-Q4_0.gguf" --spec-draft-n-max 2 --spec-draft-p-min 0.55 -to 1800 -fit on -np 1 -c 65536
+
+-> 53.84
+
+12B
+.\llama-server.exe --model C:\Users\terry\llama-cpp-turboquant\models\gemma-4-12B-it-qat-UD-Q4_K_XL.gguf -fa on -ctk turbo3 -ctv turbo3 -to 1800 -fit on -np 1 -b 2048 -ub 512 -c 98304
+
+-> 34.50
+
+12B + MTP
+.\llama-server.exe --model C:\Users\terry\llama-cpp-turboquant\models\gemma-4-12B-it-qat-UD-Q4_K_XL.gguf -fa on -ctk turbo3 -ctv turbo3 --spec-type draft-mtp --model-draft "C:\Users\terry\llama-cpp-turboquant\models\mtp-gemma-4-12B-it-Q4_0.gguf" --spec-draft-n-max 2 --spec-draft-p-min 0.55 -to 1800 -fit on -np 1 -c 65536
+
+-> 52.79
+
+E4B
+.\llama-server.exe --model C:\Users\terry\llama-cpp-turboquant\models\gemma-4-E4B-it-qat-UD-Q4_K_XL.gguf -fa on -ctk turbo3 -ctv turbo3 -to 1800 -fit on -np 1 -b 2048 -ub 512 -c 98304
+
+-> 67.16
+
+E4B + MTP
+.\llama-server.exe --model C:\Users\terry\llama-cpp-turboquant\models\gemma-4-E4B-it-qat-UD-Q4_K_XL.gguf -fa on -ctk turbo3 -ctv turbo3 --spec-type draft-mtp --model-draft "C:\Users\terry\llama-cpp-turboquant\models\mtp-gemma-4-E4B-it-Q4_0.gguf" --spec-draft-n-max 2 --spec-draft-p-min 0.55 -to 1800 -fit off -np 1 -c 98304 --no-warmup
+
+-> 안된다...?
+
+31B
+.\llama-server.exe --model C:\Users\terry\llama-cpp-turboquant\models\gemma-4-31B-it-qat-UD-Q4_K_XL.gguf -fa on -ctk turbo3 -ctv turbo3 -to 1800 -fit on -np 1 -b 2048 -ub 512 -c 98304

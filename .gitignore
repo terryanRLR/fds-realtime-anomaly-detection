@@ -1,0 +1,122 @@
+# ══════════════════════════════════════════════════════════
+#  FDS 이상거래 탐지 시스템 — Git 제외 목록
+#  ⚠️ 이 파일을 지우면 .env 의 Slack 웹훅·Gmail 앱 비밀번호가
+#     그대로 커밋됩니다. 반드시 유지하세요.
+# ══════════════════════════════════════════════════════════
+
+# ── 🔴 비밀값 (절대 커밋 금지) ────────────────────────────
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+
+# ── 운영 DB (탐지 이력·계좌·거래 = 개인정보) ──────────────
+*.db
+*.db-shm
+*.db-wal
+*.db.bak-*
+
+# ── 런타임 상태·로그 ──────────────────────────────────────
+*.log
+logs/
+.watcher.lock
+.deadman_state.json
+.fds_onboarded
+.ops_onboarded
+start_fds_all_log.txt
+start_fds_all_ops_log.txt
+start_fds_team_log.txt
+
+# 프롬프트 편집기 저장소 — 두 대시보드가 공유하는 사용자 프롬프트.
+#   현장에서 고친 문구(내부 용어·거래 예시)가 섞이므로 커밋하지 않습니다.
+#   지워도 앱은 뜹니다 — llm_analyzer 내장 기본 프롬프트로 돌아갈 뿐입니다.
+prompts/overrides.json
+prompts/overrides.json.tmp
+
+# 경보 설정 — 담당자/교대조마다 다른 값이라 커밋 대상이 아닙니다.
+alarm_prefs.json
+alarm_prefs.json.tmp
+
+# start_fds_all*.bat 가 실행 시 자동 생성하는 헬퍼 스크립트
+_run_llama.cmd
+_run_watcher.cmd
+_run_streamlit.cmd
+_run_dashboard_streamlit.cmd
+_run_ops_streamlit.cmd
+
+# ══════════════════════════════════════════════════════════
+#  대용량 — GitHub 에 올리지 않습니다 (재생성 절차는 각 README)
+# ══════════════════════════════════════════════════════════
+
+# ── 데이터셋 141MB ────────────────────────────────────────
+#    스키마와 재생성 절차: data/README.md
+data/*.csv
+data/*.parquet
+data/*.pq
+
+# ── 모델 바이너리 136MB (rf_fds.pkl 단독 83MB) ────────────
+#    메타 JSON 4종과 README 는 커밋합니다 — models/README.md
+models/*.pkl
+models/*.onnx
+models/*.pmml
+models/*.parquet
+
+# ── 원본 작업 아카이브 60MB ───────────────────────────────
+#    내용은 이미 재배치됨:
+#      노트북  → notebooks/individual/ (as-is 보존)
+#      PDF     → reports/ · slides/
+#      다이어그램 → docs/assets/
+원본/
+*.docx
+*.doc
+
+# ── 재생성 가능한 산출물 ──────────────────────────────────
+# ⚠️ Git 은 같은 줄의 주석(#)을 지원하지 않습니다 — 패턴 뒤에 쓰면 무시됩니다.
+# chroma_db/ : python -m tools.build_rag_docs 로 재구축 (또는 자동 재임베딩)
+chroma_db/
+# inbox/ : 워처 입력 폴더 (운영 데이터)
+inbox/
+threshold_report.csv
+threshold_report.txt
+consolidated_codes.md
+consolidated_codes.ipynb
+error_log.txt
+
+# ── 파이썬 ────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+
+# ── 백업 관행 (이 프로젝트에서 자주 생기는 패턴) ──────────
+*(백).py
+*(백[0-9]*).py
+*(백v[0-9]*).py
+* - 백.*
+*_BACKUP_*/
+
+# ── OS / 에디터 ───────────────────────────────────────────
+Thumbs.db
+desktop.ini
+.DS_Store
+.idea/
+.vscode/
+.claude/
+
+# ── 외부 바이너리 (Windows 서비스 등록 도구) ──────────────
+nssm.exe
+nssm.pdb
+
+# ══════════════════════════════════════════════════════════
+#  커밋되는 것 (참고)
+#    코드      dashboard.py · ops_dashboard.py · watcher.py · pipeline/ · tools/
+#    문서      README.md · docs/ · 각 폴더 README
+#    노트북    notebooks/ (출력 포함 — 데이터 없이도 결과를 볼 수 있게)
+#    산출물    reports/ (29MB) · slides/ (15MB)
+#    지식베이스 knowledge/
+#    메타      models/*.json · requirements*.txt · *.bat · *.sh
+# ══════════════════════════════════════════════════════════

@@ -1,0 +1,19 @@
+{
+  "_version": "v16",
+  "_note": "기대비용 기반 결정 (2026-08-05). Macro-F1 >= 0.6 제약 하 비용 최소화. th_review 0.10 -> 0.005 : 기대비용 7.48억 -> 4.62억(-2.86억), 미탐 44 -> 27건, 하루 알림 2.8 -> 3.7건. FN단가 1,700만원 / FP단가 5만원 가정 · tools/threshold_report.py",
+  "dual_threshold": true,
+  "threshold": 0.5,
+  "th_review": 0.005,
+  "th_confirm": 0.9,
+  "pii_level": "standard",
+  "notify_slack": true,
+  "notify_email": true,
+  "email_to": "",
+  "use_llm": true,
+  "use_rag": true,
+  "rich_visuals": true,
+  "dedup_hours": 24,
+  "dry_run": false,
+  "_changed_by": "팀 비용분석 검토 반영",
+  "_changed_at": "2026-08-05"
+}
