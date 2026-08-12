@@ -3,10 +3,24 @@
 추론에 필요한 모델 + 메타 파일 한 벌입니다. **메타 4종은 모델과 세트로 움직입니다** —
 하나라도 빠지거나 세대가 어긋나면 추론이 조용히 틀어집니다.
 
-> ⚠️ **저장소에는 `.pkl` 이 포함되지 않습니다** (합계 136MB, `rf_fds.pkl` 단독 83MB).
-> 커밋되는 것은 **메타 JSON 4종**(`feature_cols` · `feature_defaults` · `model_meta` · `eval_result`)과
-> 이 문서·`로드예제.py`·`*.sql` 뿐입니다.
-> 모델 파일은 `notebooks/team_final/` 01~06 을 실행해 재생성하거나 팀에서 받으세요.
+> ✅ **추론 번들 한 벌(12.3MB)은 저장소에 포함됩니다.** clone 하면 바로 추론이 됩니다.
+>
+> | 커밋됨 | 제외됨 |
+> |---|---|
+> | `lgbm_13class(최종).pkl` **12.24MB** — 운영 모델 | `rf_fds.pkl` **82.35MB** |
+> | `le_target.pkl` 379B · `label_encoders.pkl` 6.6KB · `scaler.pkl` 3.2KB | `LightGBM 13클래스_Macro-F1.pkl` 12.39MB |
+> | `_sample_valid.parquet` 44.7KB — 데모용 샘플 | `lgbm_fds.pkl` 11.65MB · `lgbm_13class(모델).pkl` 6.54MB |
+> | 메타 JSON 4종 · 이 문서 · `로드예제.py` · `*.sql` | `2단계(1)(2)` · `피처 순서(81)…` 등 |
+>
+> 제외된 것은 **비교·이력용**입니다. 필요하면 `notebooks/team_final/` 01~06 을 실행해
+> 재생성하거나 팀에서 받으세요. 전체는 135.89MB 이고, 그중 `rf_fds.pkl` 하나가 82.35MB 입니다.
+>
+> **왜 처음에 전부 제외했다가 바꿨는가** — `models/*.pkl` 규칙이 82MB 바이너리를 막으려던
+> 것인데 **379바이트짜리 `le_target.pkl` 까지 걸러 냈습니다.** 그 결과 clone 한 사람이
+> 라벨을 디코딩할 수 없었고(이 문서가 "지우지 마세요" 라고 적어 둔 파일입니다),
+> Streamlit Cloud 배포본은 모델을 못 찾아 정적 모드로만 떴습니다.
+> `.gitignore` 에 예외 5줄을 두어 **운영에 필요한 최소 한 벌만** 올립니다.
+>
 > 모델 카드와 성능 근거: [`docs/07_model_and_thresholds.md`](../docs/07_model_and_thresholds.md)
 
 ## 현행 번들 (`model_meta.json` 기준)

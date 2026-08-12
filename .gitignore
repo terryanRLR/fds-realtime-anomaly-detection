@@ -54,12 +54,28 @@ data/*.csv
 data/*.parquet
 data/*.pq
 
-# ── 모델 바이너리 136MB (rf_fds.pkl 단독 83MB) ────────────
+# ── 모델 바이너리 136MB (rf_fds.pkl 단독 82MB) ────────────
 #    메타 JSON 4종과 README 는 커밋합니다 — models/README.md
 models/*.pkl
 models/*.onnx
 models/*.pmml
 models/*.parquet
+
+# ── 예외: 추론 번들 한 벌은 커밋합니다 (합계 12.3MB) ───────
+#    왜 예외를 두는가
+#      위 규칙은 rf_fds.pkl(82MB) 같은 비교용 바이너리를 막으려는 것인데,
+#      실제로는 379바이트짜리 le_target.pkl 까지 함께 걸러 냈다. 그 결과
+#      ① clone 한 사람이 라벨을 디코딩할 수 없고 (models/README.md 는
+#         "지우지 마세요 · 모델과 세트로 움직입니다" 라고 적어 두었다)
+#      ② Streamlit Cloud 배포본이 모델을 못 찾아 정적 모드로만 떴다.
+#    따라서 "운영에 필요한 최소 한 벌" 만 예외로 올린다.
+#    비교용 대형 모델(rf_fds 82MB · LightGBM 13클래스_Macro-F1 12MB 등)은
+#    계속 제외한다 — 필요하면 notebooks/team_final/ 01~06 으로 재생성한다.
+!models/lgbm_13class(최종).pkl
+!models/le_target.pkl
+!models/label_encoders.pkl
+!models/scaler.pkl
+!models/_sample_valid.parquet
 
 # ── 원본 작업 아카이브 60MB ───────────────────────────────
 #    내용은 이미 재배치됨:
