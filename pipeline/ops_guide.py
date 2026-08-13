@@ -16,6 +16,7 @@ dashboard.py 의 온보딩(2944~3031행)과 같은 구조를 관제용으로 다
 from __future__ import annotations
 
 import logging
+import os
 from pathlib import Path
 
 import streamlit as st
@@ -26,6 +27,30 @@ log = logging.getLogger("ops_guide")
 
 MARK_FILE = Path(".ops_onboarded")
 MANUAL_FILE = "ops_dashboard_사용설명서.md"
+
+
+def _is_shared_deploy() -> bool:
+    """여러 사람이 같은 컨테이너를 공유하는 배포 환경인가.
+
+    dashboard.py 에 같은 함수가 있다 — 두 앱이 서로를 import 하지 않으므로 각자 둔다.
+
+    Streamlit Cloud 는 저장소를 /mount/src/<repo> 에 마운트한다(구버전은 /app).
+    로컬에는 그런 경로가 없다. 판별이 빗나갈 때를 대비해 환경변수로도 강제할 수 있다.
+    """
+    if os.getenv("FDS_SHARED_DEPLOY", "") == "1":
+        return True
+    try:
+        here = str(Path(__file__).resolve()).replace("\\", "/")
+        return here.startswith("/mount/src") or here.startswith("/app/")
+    except Exception:
+        return False
+
+
+#  🐛 FIX — 배포본에서는 파일 마커를 쓰지 않는다.
+#    마커 파일은 "내 PC 에서 한 번 봤다"는 뜻인데, Streamlit Cloud 는 컨테이너 하나를
+#    모든 방문자가 공유한다. 그래서 첫 방문자가 안내를 여는 순간 파일이 생기고,
+#    그 뒤로는 링크를 받은 누구도 안내를 못 본다. 공유 배포에서는 세션 상태만 본다.
+SHARED_DEPLOY = _is_shared_deploy()
 
 # (아이콘, 탭 이름, 색 키, 한 줄 설명)
 TAB_GUIDE = [
@@ -298,6 +323,8 @@ def _g(lang: str) -> dict:
 def seen() -> bool:
     if st.session_state.get("_ops_onboard_done"):
         return True
+    if SHARED_DEPLOY:
+        return False      # 공유 배포 — 방문자마다 새 세션이므로 한 번씩 보여 준다
     try:
         return MARK_FILE.exists()
     except Exception:
@@ -306,6 +333,8 @@ def seen() -> bool:
 
 def mark():
     st.session_state["_ops_onboard_done"] = True
+    if SHARED_DEPLOY:
+        return            # 컨테이너를 공유하므로 디스크에 남기지 않는다
     try:
         MARK_FILE.write_text("1", encoding="utf-8")
     except Exception:
@@ -435,12 +464,27 @@ def maybe_show(T: dict, reviewer: str = "", force: bool = False,
         mark()
         st.rerun()
 
+    def _dismiss():
+        """X(또는 바깥 클릭)로 닫았을 때도 닫힌 것으로 친다.
+
+        OPEN_KEY 는 버튼을 눌러야 내려가도록 설계돼 있어서(위 docstring 참조),
+        X 로 닫으면 플래그가 True 로 남아 다음 rerun 에 안내가 되살아난다.
+        on_dismiss 콜백 뒤에는 Streamlit 이 알아서 rerun 하므로 st.rerun() 은 부르지 않는다.
+        """
+        st.session_state[OPEN_KEY] = False
+        st.session_state["_ops_onboard_done"] = True
+        mark()
+
     if _DLG is not None:
         try:
+            # on_dismiss= 는 1.49+, width= 는 1.37+. 낮은 버전에서도 죽지 않게 단계적으로 내려간다.
             try:
-                dec = _DLG(_g(lang)["title"], width="large")
-            except TypeError:                          # width 는 1.37+
-                dec = _DLG(_g(lang)["title"])
+                dec = _DLG(_g(lang)["title"], width="large", on_dismiss=_dismiss)
+            except TypeError:
+                try:
+                    dec = _DLG(_g(lang)["title"], width="large")
+                except TypeError:
+                    dec = _DLG(_g(lang)["title"])
 
             @dec
             def _dlg():

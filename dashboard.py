@@ -245,7 +245,10 @@ _DEFAULTS = {
     'pii_skip_local': True,
     'notify_email': os.getenv('FDS_NOTIFY_EMAIL', os.getenv('SMTP_USER', '')),
     # ✨ v9.1: 신 UI 컴팩트 오버뷰 (한 세션 = 한 화면)
-    'compact_view': False,
+    #   기본값 True — 링크를 받아 처음 들어온 사람이 스크롤 없이 한 세션을 다 보게 한다.
+    #   끄면 기존의 넉넉한 레이아웃으로 돌아간다(사이드바 토글 · 단축키 V).
+    #   구 UI 에서는 CV = IS_NEW_UI and compact_view 라 자동으로 무시된다.
+    'compact_view': True,
     # ✨ v9.1: 이중 임계값 발송 (1차=의심→Slack 검토요청 · 2차=확정→Slack+Email 통보)
     'dual_threshold': False,
     'th_review': 0.6,
@@ -390,7 +393,7 @@ html,body,[data-testid="stAppViewContainer"],[data-testid="stApp"]{{background:v
 [data-testid="stHeader"]{{background:transparent!important;}}
 [data-testid="stSidebar"]{{background:var(--bg-surface)!important;border-right:1px solid var(--border)!important;}}
 [data-testid="stSidebar"] *{{font-family:var(--font-body)!important;color:var(--text-primary)!important;}}
-.main .block-container{{padding:1rem 2.5rem 2rem!important;max-width:1400px!important;}}
+.main .block-container,[data-testid="stMain"] .block-container,.stMainBlockContainer{{padding:1rem 2.5rem 2rem!important;max-width:1400px!important;}}
 [data-testid="stSlider"] [data-baseweb="slider"] div[role="slider"]{{background:var(--accent)!important;border-color:var(--accent)!important;}}
 [data-testid="stSlider"] [data-baseweb="slider"] [data-testid="stThumbValue"]{{color:var(--accent)!important;font-family:var(--font-mono)!important;}}
 .stButton>button{{background:linear-gradient(135deg,var(--accent-dim),var(--accent))!important;color:var(--bg-base)!important;border:none!important;border-radius:var(--radius)!important;font-weight:700!important;font-family:var(--font-body)!important;font-size:13px!important;padding:8px 20px!important;letter-spacing:0.02em!important;transition:all 0.18s!important;box-shadow:0 0 16px rgba({T['accent_rgb']},0.20)!important;}}
@@ -506,7 +509,7 @@ _css_new = f"""<link href="https://fonts.googleapis.com/css2?family=Inter:wght@4
 :root {{--bg-base:{T['bg_base']};--bg-surface:{T['bg_surface']};--bg-card:{T['bg_card']};--bg-card-hover:{T['bg_card_hover']};--border:rgba({T['accent_rgb']},0.14);--border-strong:rgba({T['accent_rgb']},0.30);--border-hair:{'rgba(148,163,184,0.14)' if _IS_DARK_BG else 'rgba(16,24,40,0.10)'};--accent:{T['accent']};--accent-dim:{T['accent_dim']};--red:{T['red']};--red-dim:{T['red_dim']};--amber:{T['amber']};--green:{T['green']};--blue:{T['blue']};--purple:{T['purple']};--text-primary:{T['text_primary']};--text-secondary:{T['text_secondary']};--text-muted:{T['text_muted']};--font-body:'Inter',sans-serif;--font-mono:'JetBrains Mono',monospace;--radius:12px;--radius-lg:16px;--shadow-1:0 1px 2px rgba(8,12,24,0.18);--shadow-2:0 4px 14px rgba(8,12,24,0.22);--shadow-accent:0 6px 22px rgba({T['accent_rgb']},0.30);}}
 html,body,[data-testid="stAppViewContainer"],[data-testid="stApp"]{{background:radial-gradient(1100px 520px at 85% -12%,rgba({T['accent_rgb']},{'0.07' if _IS_DARK_BG else '0.05'}),transparent 60%),radial-gradient(820px 460px at -8% 108%,rgba({T['accent_rgb']},{'0.05' if _IS_DARK_BG else '0.035'}),transparent 55%),var(--bg-base)!important;background-attachment:fixed!important;font-family:var(--font-body)!important;color:var(--text-primary)!important;}}
 [data-testid="stHeader"]{{background:transparent!important;}}
-.main .block-container{{padding:1.2rem 3rem 2.5rem!important;max-width:1440px!important;}}
+.main .block-container,[data-testid="stMain"] .block-container,.stMainBlockContainer{{padding:1.2rem 3rem 2.5rem!important;max-width:1440px!important;}}
 ::selection{{background:rgba({T['accent_rgb']},0.30);color:var(--text-primary);}}
 :focus-visible{{outline:2px solid var(--accent)!important;outline-offset:2px;border-radius:4px;}}
 [data-testid="stDataFrame"] tr:hover td{{background:var(--bg-card-hover)!important;transition:background .12s;}}
@@ -764,7 +767,7 @@ def csec_row(items):
 if CV:
     st.markdown("""<style>
     /* 레이아웃 — v9.6/v9.8: 상단 패딩 최소화로 타이틀·탭을 더 위로 끌어올림(세로 공간 회수) */
-    .main .block-container{padding:0.2rem 1.6rem 1rem!important;max-width:100%!important;}
+    .main .block-container,[data-testid="stMain"] .block-container,.stMainBlockContainer{padding:0.2rem 1.6rem 1rem!important;max-width:100%!important;}
     [data-testid="stVerticalBlock"]{gap:0.65rem!important;}
     [data-testid="stHorizontalBlock"]{gap:0.7rem!important;}
     [data-testid="stElementContainer"]{margin-bottom:0!important;}
@@ -841,7 +844,7 @@ if CV:
 
     /* ✨ v14 (요청 7) — "한 화면에 한 세션" 목표: 세로 점유 추가 회수 */
     /* 페이지 최상단 여백/진행 인디케이터 압축 */
-    .main .block-container{padding-top:0.1rem!important;}
+    .main .block-container,[data-testid="stMain"] .block-container,.stMainBlockContainer{padding-top:0.1rem!important;}
     .session-progress{margin:0 0 0.35rem!important;} .session-dot{width:22px;height:22px;font-size:9.5px;}
     /* 입력 위젯 전반 — 라벨/본체 높이 축소 (세션5 직접입력이 가장 큰 수혜) */
     [data-testid="stWidgetLabel"] p{font-size:11px!important;margin-bottom:2px!important;}
@@ -3047,12 +3050,39 @@ if st.session_state.pop("_kbd_open", False):
 #   실무 초보자가 "이 화면에서 무엇을 할 수 있는지"를 세션별로 한 번에 파악하도록,
 #   최초 진입 시 모달로 안내한다. 닫으면 다시 뜨지 않고(파일 마커 + 세션상태),
 #   사이드바 '🎓 사용 안내' 버튼으로 언제든 다시 열 수 있다.
+#
+# 🐛 FIX — 배포본에서는 파일 마커를 쓰지 않는다
+#   파일 마커는 "내 PC 에서 한 번 봤으니 다시 띄우지 마라"는 뜻이다. 그런데
+#   Streamlit Cloud 는 **컨테이너 하나를 모든 방문자가 공유**하므로, 이 파일은 곧
+#   "전 세계에서 한 명이 봤다"가 된다. 첫 방문자가 모달을 여는 순간 파일이 생기고,
+#   그 뒤 링크를 받은 사람은 아무도 안내를 못 본다.
+#   → 공유 배포에서는 st.session_state 만 본다. 세션 상태는 브라우저 세션마다
+#     새로 시작하므로 "방문자 한 명당 한 번"이라는 원래 의도가 그대로 지켜진다.
+#     로컬에서는 개발 중 새로고침마다 뜨면 성가시므로 기존 동작을 유지한다.
 # ══════════════════════════════════════════════════════════
 _ONBOARD_MARK = Path(".fds_onboarded")
+
+def _is_shared_deploy() -> bool:
+    """여러 사람이 같은 컨테이너를 공유하는 배포 환경인가.
+
+    Streamlit Cloud 는 저장소를 /mount/src/<repo> 에 마운트한다(구버전은 /app).
+    로컬에는 그런 경로가 없다. 판별이 빗나갈 때를 대비해 환경변수로도 강제할 수 있다.
+    """
+    if os.getenv("FDS_SHARED_DEPLOY", "") == "1":
+        return True
+    try:
+        here = str(Path(__file__).resolve()).replace("\\", "/")
+        return here.startswith("/mount/src") or here.startswith("/app/")
+    except Exception:
+        return False
+
+_ONBOARD_SHARED = _is_shared_deploy()
 
 def _onboard_seen() -> bool:
     if st.session_state.get("_onboard_done"):
         return True
+    if _ONBOARD_SHARED:
+        return False      # 공유 배포 — 방문자마다 새 세션이므로 한 번씩 보여 준다
     try:
         return _ONBOARD_MARK.exists()
     except Exception:
@@ -3060,6 +3090,8 @@ def _onboard_seen() -> bool:
 
 def _onboard_mark():
     st.session_state["_onboard_done"] = True
+    if _ONBOARD_SHARED:
+        return            # 컨테이너를 공유하므로 디스크에 남기지 않는다
     try:
         _ONBOARD_MARK.write_text("1", encoding="utf-8")
     except Exception:
@@ -3099,6 +3131,18 @@ def _onboard_close():
     st.session_state[_ONB_OPEN] = False
     _onboard_mark(); st.rerun()
 
+def _onboard_dismiss():
+    """X(또는 바깥 클릭)로 닫았을 때도 닫힌 것으로 친다.
+
+    `_ONB_OPEN` 은 버튼을 눌러야 내려가도록 설계돼 있다(아래 _onboard_actions 주석).
+    그래서 X 로 닫으면 플래그가 True 로 남아 **다음 rerun 에 모달이 되살아난다.**
+    로컬에서는 파일 마커 때문에 애초에 잘 안 뜨던 터라 드러나지 않았는데,
+    배포본에서 방문자마다 안내가 뜨게 고치고 나니 바로 문제가 됐다.
+    on_dismiss 콜백 뒤에는 Streamlit 이 알아서 rerun 하므로 st.rerun() 을 부르지 않는다.
+    """
+    st.session_state[_ONB_OPEN] = False
+    _onboard_mark()
+
 def _onboard_actions():
     """🐛 FIX(v24) — 세 버튼이 먹통이던 이유 (ops_guide v2 와 같은 함정)
 
@@ -3127,10 +3171,14 @@ def _onboard_actions():
 _DLG = getattr(st, "dialog", None) or getattr(st, "experimental_dialog", None)
 _onb_has_modal = False         # 모달 사용 가능 여부 (False면 인라인 폴백)
 if _DLG is not None:
-    try:                                    # width= 는 st.dialog(1.37+)만 지원
-        _dec = _DLG(t("onb.title"), width="large")
+    # on_dismiss= 는 1.49+, width= 는 1.37+. 낮은 버전에서도 죽지 않게 단계적으로 내려간다.
+    try:
+        _dec = _DLG(t("onb.title"), width="large", on_dismiss=_onboard_dismiss)
     except TypeError:
-        _dec = _DLG(t("onb.title"))
+        try:
+            _dec = _DLG(t("onb.title"), width="large")
+        except TypeError:
+            _dec = _DLG(t("onb.title"))
 
     @_dec
     def _onb_dialog_fn():
