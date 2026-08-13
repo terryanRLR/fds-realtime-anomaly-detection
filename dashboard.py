@@ -671,6 +671,22 @@ if IS_NEW_UI:
 
 # ── ✨ v7 DESIGN: 공용 CSS — 페이지 히어로 + 푸터 (신·구 UI 공통 주입) ──
 _css_shared = f"""<style>
+/* ── 모바일: 상단 세션 내비를 가로 스크롤 pill 행으로 ──────────────
+   st.columns 는 좁은 화면에서 세로로 쌓인다. 세션이 5개라 내비만 225px 를 먹고
+   첫 화면에 본문이 한 줄도 안 남았다. 1번·2번 대시보드처럼 가로로 눕히고
+   넘치면 스크롤하게 한다. :has() 로 내비 행만 골라 다른 컬럼 배치는 건드리지 않는다. */
+@media (max-width: 640px) {{
+  [data-testid="stHorizontalBlock"]:has(.st-key-nav_0) {{
+    flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none; gap: 6px !important;
+  }}
+  [data-testid="stHorizontalBlock"]:has(.st-key-nav_0)::-webkit-scrollbar {{ display: none; }}
+  [data-testid="stHorizontalBlock"]:has(.st-key-nav_0) > div {{
+    flex: 0 0 auto !important; width: auto !important; min-width: 0 !important;
+  }}
+  [data-testid="stHorizontalBlock"]:has(.st-key-nav_0) button {{
+    white-space: nowrap; padding-left: 12px !important; padding-right: 12px !important;
+  }}
+}}
 .page-hero{{margin:2px 0 6px;animation:fdsFade .4s ease both;}}
 .page-hero .hero-eyebrow{{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:10.5px;font-weight:700;letter-spacing:0.10em;color:var(--accent);background:rgba({T['accent_rgb']},0.09);border:1px solid rgba({T['accent_rgb']},0.24);border-radius:999px;padding:3px 11px;margin-bottom:10px;}}
 .page-hero .hero-eyebrow::before{{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px rgba({T['accent_rgb']},0.7);}}

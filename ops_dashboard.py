@@ -62,8 +62,10 @@ if not log.handlers:
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s [%(levelname)s] %(message)s")
 
+# initial_sidebar_state="auto" — 좁은 화면에서만 접힌다. "expanded" 는 모바일에서
+#   사이드바가 본문을 덮어 첫 화면이 통째로 가려졌다. 데스크톱은 그대로 펼쳐진다.
 st.set_page_config(page_title="FDS Ops Console", page_icon="🛡",
-                   layout="wide", initial_sidebar_state="expanded")
+                   layout="wide", initial_sidebar_state="auto")
 
 # ── Streamlit 최소 버전 ────────────────────────────────────
 #   st.tabs(key=…, default=…) 는 1.58+ 에서만 받는다. 낮은 버전에서는 탭을
