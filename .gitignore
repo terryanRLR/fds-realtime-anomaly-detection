@@ -16,6 +16,16 @@
 *.db-wal
 *.db.bak-*
 
+#    ✅ 예외 — 시연용 시드 DB (148KB)
+#    운영 DB 를 제외한 탓에 배포본에서 관제 화면이 통째로 비었습니다
+#    (DB 가 없으면 st.stop() 으로 멈춥니다). 그래서 원본 거래 레코드를
+#    걷어낸 사본을 시드로 두고, DB 가 없을 때만 복사합니다.
+#    비운 것: detections.raw_json · analysis_cache.payload
+#            (이름·IP·MAC·계좌번호가 들어 있던 원본 64필드)
+#    남긴 것: 탐지 결과·위험점수·판정·알림 이력 — 관제 화면이 사는 데 필요한 것
+#    복사 로직: pipeline/db_seed.py
+!demo/fds_results_seed.db
+
 # ── 런타임 상태·로그 ──────────────────────────────────────
 *.log
 logs/
@@ -53,6 +63,16 @@ _run_ops_streamlit.cmd
 data/*.csv
 data/*.parquet
 data/*.pq
+
+#    ✅ 예외 — 학습·검증 세트는 커밋합니다 (합계 8.4MB)
+#    이걸 빼 두면 배포본에서 QA 콘솔 첫 화면이 텅 빕니다. 링크를 받은 사람은
+#    KPI 5개와 데이터 분포 차트를 아예 못 봅니다(로컬에는 파일이 있어 드러나지 않던 문제).
+#    라벨 인코딩된 수치 58열뿐이라 이름·계좌번호·IP 같은 식별 정보가 없습니다.
+#    원본 train/test.csv 는 계속 제외합니다 — 식별 정보가 그대로 들어 있습니다.
+!data/X_tr.parquet
+!data/y_tr.parquet
+!data/X_va.parquet
+!data/y_va.parquet
 
 # ── 모델 바이너리 136MB (rf_fds.pkl 단독 82MB) ────────────
 #    메타 JSON 4종과 README 는 커밋합니다 — models/README.md

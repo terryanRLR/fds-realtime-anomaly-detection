@@ -304,6 +304,15 @@ LANG = st.session_state["lang"]
 T = ui.get_theme(st.session_state["theme"])
 DB = st.session_state["db_path"]
 
+# DB 가 아예 없으면(clone 직후·배포본) 시연용 시드를 깔아 준다.
+#   없으면 아래 `if not Path(DB).exists(): st.stop()` 에 걸려 화면이 통째로 빈다.
+#   이미 있으면 아무것도 하지 않는다 — 로컬 운영 이력을 덮지 않는다.
+try:
+    from pipeline.db_seed import ensure_db as _ensure_db
+    _ensure_db(DB)
+except Exception:                       # noqa: BLE001
+    pass                                # 시드가 없어도 기존 동작(안내 후 정지)으로 흘러간다
+
 st.markdown(ui.build_css(T), unsafe_allow_html=True)
 if dui:
     # ops_ui CSS **뒤에** 주입해야 한다 — 같은 클래스가 겹치면 나중 정의가 이긴다

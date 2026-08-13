@@ -258,6 +258,15 @@ for _k, _v in _DEFAULTS.items():
     if _k not in st.session_state:
         st.session_state[_k] = _v
 
+# 탐지 로그 탭이 읽는 fds_results.db 는 운영 DB 라 커밋하지 않는다.
+#   clone 직후·배포본에는 없으므로, 없을 때만 시연용 시드를 깔아 준다.
+#   이미 있으면 손대지 않는다. (pipeline/db_seed.py 주석 참조)
+try:
+    from pipeline.db_seed import ensure_db as _ensure_db
+    _ensure_db("fds_results.db")
+except Exception:                       # noqa: BLE001
+    pass
+
 # ══════════════════════════════════════════════════════════
 # 🎛 기본 선택값 설정 (여기 세 줄만 바꾸면 기본값이 바뀝니다)
 #   · 파일명/데이터셋명의 '일부 조각'으로 매칭합니다 (대소문자·공백·밑줄 무시).
