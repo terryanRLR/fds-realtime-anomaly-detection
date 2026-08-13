@@ -66,6 +66,15 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
+def _is_shared_deploy() -> bool:
+    """공용 판별을 얇게 감싼다 — pipeline 을 못 읽는 상황에서도 앱은 떠야 한다."""
+    try:
+        from pipeline.db_seed import is_shared_deploy
+        return is_shared_deploy()
+    except Exception:                   # noqa: BLE001
+        import os
+        return os.getenv("FDS_SHARED_DEPLOY", "") == "1"
+
 # ══════════════════════════════════════════════════════════
 # 🔌 포트 배지 — dashboard.py / ops_dashboard.py를 동시에 켰을 때
 #   지금 보고 있는 게 어느 앱·어느 포트인지 화면에서 바로 구분하기 위한 표시.
@@ -74,6 +83,11 @@ st.set_page_config(
 #   보이므로 충돌 여부를 즉시 알아챌 수 있다.
 # ══════════════════════════════════════════════════════════
 def _port_badge(app_name: str):
+    # 배포본에서는 띄우지 않는다 — 공개 URL 에 소스 파일명과 포트가 그대로 노출된다.
+    #   로컬에서 두 앱을 동시에 켰을 때 포트 충돌을 알아채려고 만든 장치라,
+    #   방문자가 하나만 여는 배포 환경에서는 쓸모가 없다.
+    if _is_shared_deploy():
+        return
     try:
         _port = st.get_option("server.port")
     except Exception:
@@ -699,7 +713,10 @@ _css_shared = f"""<style>
 .fds-footer .f-chip{{font-family:var(--font-mono);font-weight:700;color:var(--accent);background:rgba({T['accent_rgb']},0.10);border:1px solid rgba({T['accent_rgb']},0.25);border-radius:6px;padding:1px 7px;}}
 .fds-footer .f-dot{{width:3px;height:3px;border-radius:50%;background:var(--text-muted);opacity:0.6;}}
 /* ── ✨ v7: 번호형 세션 진행 인디케이터 (신·구 UI 공용) ── */
+/* 상단 내비 pill 이 이미 현재 세션을 알려 준다. 같은 정보를 바로 아래에서 점으로
+   한 번 더 표현해 첫 화면을 먹고 있었다. 좁은 화면에서만 접어 세로 공간을 돌려준다. */
 .session-progress{{display:flex;gap:6px;justify-content:center;padding:10px 0;margin-bottom:6px;}}
+@media (max-width: 640px){{ .session-progress{{display:none;}} }}
 .session-dot{{width:9px;height:9px;border-radius:99px;background:var(--border-strong,var(--border-glow));transition:all .35s cubic-bezier(.22,1,.36,1);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:8.5px;font-weight:700;letter-spacing:0.06em;color:transparent;overflow:hidden;}}
 .session-dot.active{{background:linear-gradient(90deg,var(--accent),var(--accent-dim));box-shadow:0 0 10px rgba({T['accent_rgb']},0.55);width:40px;color:{'#0b0f17' if _IS_DARK_BG else '#ffffff'};}}
 .session-dot.done{{background:var(--green);opacity:0.55;}}
@@ -3086,20 +3103,6 @@ if st.session_state.pop("_kbd_open", False):
 #     로컬에서는 개발 중 새로고침마다 뜨면 성가시므로 기존 동작을 유지한다.
 # ══════════════════════════════════════════════════════════
 _ONBOARD_MARK = Path(".fds_onboarded")
-
-def _is_shared_deploy() -> bool:
-    """여러 사람이 같은 컨테이너를 공유하는 배포 환경인가.
-
-    Streamlit Cloud 는 저장소를 /mount/src/<repo> 에 마운트한다(구버전은 /app).
-    로컬에는 그런 경로가 없다. 판별이 빗나갈 때를 대비해 환경변수로도 강제할 수 있다.
-    """
-    if os.getenv("FDS_SHARED_DEPLOY", "") == "1":
-        return True
-    try:
-        here = str(Path(__file__).resolve()).replace("\\", "/")
-        return here.startswith("/mount/src") or here.startswith("/app/")
-    except Exception:
-        return False
 
 _ONBOARD_SHARED = _is_shared_deploy()
 

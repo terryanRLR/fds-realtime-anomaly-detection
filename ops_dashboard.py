@@ -88,12 +88,26 @@ if _ST_VER < _ST_MIN:
         "```\npip install -U \"streamlit>=1.58\"\n```")
     st.stop()
 
+def _is_shared_deploy() -> bool:
+    """공용 판별을 얇게 감싼다 — pipeline 을 못 읽는 상황에서도 앱은 떠야 한다."""
+    try:
+        from pipeline.db_seed import is_shared_deploy
+        return is_shared_deploy()
+    except Exception:                   # noqa: BLE001
+        import os
+        return os.getenv("FDS_SHARED_DEPLOY", "") == "1"
+
 # ══════════════════════════════════════════════════════════
 # 🔌 포트 배지 — dashboard.py 와 동일한 목적. 두 앱을 동시에 켰을 때
 #   화면 우상단에 "앱 이름 · 포트"가 보이므로, 두 탭에서 같은 배지가
 #   보이면 포트 충돌(둘 중 하나가 실제로는 안 떠 있음)이라는 뜻이다.
 # ══════════════════════════════════════════════════════════
 def _port_badge(app_name: str):
+    # 배포본에서는 띄우지 않는다 — 공개 URL 에 소스 파일명과 포트가 그대로 노출된다.
+    #   로컬에서 두 앱을 동시에 켰을 때 포트 충돌을 알아채려고 만든 장치라,
+    #   방문자가 하나만 여는 배포 환경에서는 쓸모가 없다.
+    if _is_shared_deploy():
+        return
     try:
         _port = st.get_option("server.port")
     except Exception:

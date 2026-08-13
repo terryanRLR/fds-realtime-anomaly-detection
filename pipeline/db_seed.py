@@ -29,6 +29,25 @@ log = logging.getLogger("db_seed")
 DEFAULT_SEED = "demo/fds_results_seed.db"
 
 
+def is_shared_deploy() -> bool:
+    """여러 사람이 같은 컨테이너를 공유하는 배포 환경인가.
+
+    Streamlit Cloud 는 저장소를 /mount/src/<repo> 에 마운트한다(구버전은 /app).
+    로컬에는 그런 경로가 없다. 판별이 빗나갈 때를 대비해 환경변수로도 강제할 수 있다.
+
+    여기 두는 이유 — 두 대시보드와 ops_guide 가 같은 판단을 한다.
+    사본을 각자 두었더니 한쪽에만 있거나(NameError) 정의가 사용처보다 뒤에 오는 일이 생겼다.
+    """
+    import os
+    if os.getenv("FDS_SHARED_DEPLOY", "") == "1":
+        return True
+    try:
+        here = str(Path(__file__).resolve()).replace("\\", "/")
+        return "/mount/src" in here or "/app/" in here
+    except Exception:
+        return False
+
+
 def ensure_db(db_path: str | Path, seed_path: str | Path = DEFAULT_SEED) -> bool:
     """운영 DB 가 없으면 시드를 복사한다. 복사했으면 True.
 

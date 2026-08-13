@@ -30,20 +30,12 @@ MANUAL_FILE = "ops_dashboard_사용설명서.md"
 
 
 def _is_shared_deploy() -> bool:
-    """여러 사람이 같은 컨테이너를 공유하는 배포 환경인가.
-
-    dashboard.py 에 같은 함수가 있다 — 두 앱이 서로를 import 하지 않으므로 각자 둔다.
-
-    Streamlit Cloud 는 저장소를 /mount/src/<repo> 에 마운트한다(구버전은 /app).
-    로컬에는 그런 경로가 없다. 판별이 빗나갈 때를 대비해 환경변수로도 강제할 수 있다.
-    """
-    if os.getenv("FDS_SHARED_DEPLOY", "") == "1":
-        return True
+    """공용 판별(db_seed)을 쓴다 — 사본을 여러 곳에 두지 않는다."""
     try:
-        here = str(Path(__file__).resolve()).replace("\\", "/")
-        return here.startswith("/mount/src") or here.startswith("/app/")
-    except Exception:
-        return False
+        from pipeline.db_seed import is_shared_deploy
+        return is_shared_deploy()
+    except Exception:                   # noqa: BLE001
+        return os.getenv("FDS_SHARED_DEPLOY", "") == "1"
 
 
 #  🐛 FIX — 배포본에서는 파일 마커를 쓰지 않는다.
